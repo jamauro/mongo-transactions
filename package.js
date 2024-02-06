@@ -2,7 +2,7 @@ Package.describe({
   name: 'jam:mongo-transactions',
   version: '1.0.0',
   summary: 'An easy way to use Mongo Transactions for Meteor apps',
-  git: '',
+  git: 'https://github.com/jamauro/mongo-transactions',
   documentation: 'README.md'
 });
 
