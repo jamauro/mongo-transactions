@@ -10,8 +10,7 @@
 * Can be used isomorphically.
 * Compatible with Meteor 2.8.1 and up, including support for Meteor 3.0+
 
-**Important**
-This package expects that you'll use the promise-based `*Async` Meteor collection methods introduced in `v2.8.1` though it will technically work with the older syntax without the `*Async` suffix as long as you don't use callbacks. It does **not** cover using callbacks with Meteor collection methods.
+**Important**: This package expects that you'll use the promise-based `*Async` Meteor collection methods introduced in `v2.8.1` though it will technically work with the older syntax without the `*Async` suffix as long as you don't use callbacks. It does **not** cover using callbacks with Meteor collection methods.
 
 ## Usage
 
@@ -57,7 +56,7 @@ await Mongo.withTransaction(async () => {
 }, { autoRetry: false });
 ```
 
-Setting `{ autoRetry: false }`, means the Transactions Core API will be used rather than the Callback API and you'll be responsible for handling all errors. You can read more about the differences in the [Mongo Docs](https://www.mongodb.com/docs/manual/core/transactions-in-applications/)
+Setting `{ autoRetry: false }`, means the Transactions Core API will be used rather than the Callback API and you'll be responsible for handling all errors. You can read more about the differences in the [Mongo Docs](https://www.mongodb.com/docs/manual/core/transactions-in-applications/).
 
 ### Determine if you're in a Transaction
 To determine if the code is currently running in a Transaction, use:
