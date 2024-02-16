@@ -2,9 +2,9 @@
 
 `jam:mongo-transactions` enables an easy way to work with Mongo Transactions in Meteor apps. Here are a few of the benefits:
 
-* Write with the standard Meteor collection methods you're accustomed to. You don't need to worry about using `rawCollection()`.
-* Because it's a low-level solution, ID generation works as expected.
+* Write with the standard Meteor collection methods you're accustomed to. You don't need to worry about using `rawCollection()`, though if you need a particular `rawCollection()` method, you can still use it.
 * You don't need to worry about passing `session` around. This package takes care of that for you.
+* Because it's a low-level solution, ID generation works as expected.
 * Works out-of-the-box with other packages that automatically validate on DB writes, like `jam:easy-schema` and `aldeed:collection2`.
 * One simple API to use. Mongo has made things complicated with two APIs for Transactions, the Callback API and the Core API. This package defaults to using the Callback API as recommended by Mongo, but allows you to use the Core API by passing in `autoRetry: false`.
 * Can be used isomorphically.

@@ -1,29 +1,38 @@
 import { Meteor } from 'meteor/meteor';
 import { Mongo, MongoInternals } from 'meteor/mongo';
+import { DDP } from 'meteor/ddp-client';
 
-const sessionVariable = new Meteor.EnvironmentVariable();
+const currentSession = new Meteor.EnvironmentVariable();
 const { client } = MongoInternals.defaultRemoteCollectionDriver().mongo;
 const RawCollection = MongoInternals.NpmModules.mongodb.module.Collection;
 
-function wrapWithSession(...args) {
-  const { session } = sessionVariable.get() || {};
+const hasOperator = obj => Object.keys(obj).some(k => k.includes('$'));
+const isUpdateOrReplace = (methodName, args) => args.length === 2 && (methodName === 'findOneAndReplace' || hasOperator(args[1]));
+
+function wrapWithSession(methodName, args) {
+  const session = currentSession.get();
   if (!session) {
     return args;
   }
 
   let options;
-  let callback;
+  let callback; // 2.X support, eventually can remove. callbacks are not supported but this is to enable 2.X support with *Async as people are migrating to 3.X. for some reason updateAsync was still expecting a callback in 2.X, might be a Meteor bug or maybe it's by design, either way it works as expected in 3.X so not sure it's worth addressing.
 
   if (args.length > 1) {
-    const lastArg = args[args.length - 1];
-    if (typeof lastArg === 'function') {
+    if (typeof args[args.length - 1] === 'function') { // 2.X support, eventually can remove.
       callback = args.pop();
     }
 
-    options = args.pop();
+    if (!isUpdateOrReplace(methodName, args)) {
+      options = args.pop();
+    }
   }
 
-  return [...args, { ...(options ?? {}), session }, ...(callback ? [callback] : [])]; // callbacks are not supported but this is to enable 2.X support with *Async as people are migrating to 3.X. for some reason updateAsync was still expecting a callback in 2.X, might be a Meteor bug or maybe it's by design, either way it works as expected in 3.X so not sure it's worth addressing.
+  const finalOptions = { ...options, session };
+  const finalArgs = args.length ? [...args, finalOptions] : [{}, finalOptions];
+  if (callback) finalArgs.push(callback); // 2.X support, eventually can remove.
+
+  return finalArgs;
 }
 
 function getMethodNames(obj) {
@@ -45,7 +54,7 @@ getMethodNames(RawCollection).forEach(methodName => {
   const originalMethod = RawCollection.prototype[methodName];
 
   RawCollection.prototype[methodName] = function(...args) {
-    return originalMethod.call(this, ...wrapWithSession(...args))
+    return originalMethod.call(this, ...wrapWithSession(methodName, args))
   }
 });
 
@@ -56,7 +65,7 @@ getMethodNames(RawCollection).forEach(methodName => {
  * @returns {boolean} Returns `true` if the current session is in a Transaction, `false` otherwise.
  */
 export const inTransaction = () => {
-  const { session } = sessionVariable.get() || {};
+  const session = currentSession.get();
   return session?.inTransaction() ?? false;
 };
 
@@ -74,12 +83,13 @@ export const inTransaction = () => {
  */
 export const withTransaction = async(fn, { autoRetry = true, ...txnOptions } = {}) => {
   const session = client.startSession();
+  const methodInvocation = DDP._CurrentMethodInvocation.get();
 
-  return await sessionVariable.withValue({ session }, async function () {
+  return await currentSession.withValue(session, async function () {
     try {
       let result;
-      const txnFn = async () => { // allows us to return the result of the function that we passed in to withTransaction
-        result = await fn();
+      const txnFn = async () => {
+        result = methodInvocation ? await DDP._CurrentMethodInvocation.withValue(methodInvocation, fn) : await fn(); // in 3.0 the methodInvocation was being lost, so this preserves it if it's available
       };
 
       if (autoRetry) {
