@@ -6,8 +6,9 @@ const currentSession = new Meteor.EnvironmentVariable();
 const { client } = MongoInternals.defaultRemoteCollectionDriver().mongo;
 const RawCollection = MongoInternals.NpmModules.mongodb.module.Collection;
 
+const replaceMethods = ['replaceOne', 'findOneAndReplace'];
 const hasOperator = obj => Object.keys(obj).some(k => k.includes('$'));
-const isUpdateOrReplace = (methodName, args) => args.length === 2 && (methodName === 'findOneAndReplace' || hasOperator(args[1]));
+const isUpdateOrReplace = (methodName, args) => args.length === 2 && (replaceMethods.includes(methodName) || hasOperator(args[1]));
 
 function wrapWithSession(methodName, args) {
   const session = currentSession.get();

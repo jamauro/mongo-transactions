@@ -727,6 +727,33 @@ if (Meteor.isServer) {
     test.equal(invoices.map(i => i.total), [10, 10]);
   });
 
+  Tinytest.addAsync('rawCollection() - replaceOne', async (test) => {
+    await reset();
+
+    const result = await Mongo.withTransaction(async() => {
+      const invoiceId = await Invoices.insertAsync(
+        { raw: true, total: 100 }
+      );
+
+      await Invoices.rawCollection().replaceOne(
+        { raw: false },
+        { total: 200 }
+      );
+
+      const result = await Invoices.rawCollection().replaceOne(
+        { _id: invoiceId },
+        { total: 20 },
+        { maxTimeMS: 1000 }
+      );
+
+      return result;
+    });
+
+    const invoices = await Invoices.find({}).fetchAsync();
+    test.equal(invoices.length, 1);
+    test.equal(invoices[0].total, 20)
+  });
+
   Tinytest.addAsync('rawCollection() - findOneAndUpdate', async (test) => {
     await reset();
 
