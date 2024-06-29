@@ -12,8 +12,8 @@ Package.onUse(function(api) {
   api.use('mongo');
   api.use('ddp-client');
   api.use('zodern:types@1.0.13');
-  api.mainModule('mongo-transactions-client.js', 'client');
-  api.mainModule('mongo-transactions-server.js', 'server');
+  api.mainModule('client.js', 'client');
+  api.mainModule('server.js', 'server');
 });
 
 Package.onTest(function(api) {
@@ -21,5 +21,5 @@ Package.onTest(function(api) {
   api.use('tinytest');
   api.use('mongo');
   api.use('jam:mongo-transactions');
-  api.mainModule('mongo-transactions-tests.js');
+  api.mainModule('tests.js');
 });
