@@ -9,15 +9,17 @@ export const withTransaction = async fn => {
   return await fn();
 }
 
-// for some reason, I was seeing write fails from Meteor._debug even though they were succeeding
+// in Meteor 2.x, for some reason, I was seeing write fails from Meteor._debug even though they were succeeding
 // so this supressess the errors on the client for the function that runs inside withTransaction
-const originalMeteorDebug = Meteor._debug;
-Meteor._debug = function (m, s) {
-  if (_withTxn && s.reason === 'Access denied') {
-    setTimeout(() => _withTxn = false, 1)
-    return;
-  } else {
-    return originalMeteorDebug.call(this, m, s)
+if (!Meteor.isFibersDisabled) {
+  const originalMeteorDebug = Meteor._debug;
+  Meteor._debug = function (m, s) {
+    if (_withTxn && s.reason === 'Access denied') {
+      setTimeout(() => _withTxn = false, 1)
+      return;
+    } else {
+      return originalMeteorDebug.call(this, m, s)
+    }
   }
 }
 

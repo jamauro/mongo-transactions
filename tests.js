@@ -12,6 +12,51 @@ async function reset() {
   await InvoiceItems.removeAsync({});
 }
 
+async function insertInvoicesAndUpdate() {
+  const result = await Mongo.withTransaction(async() => {
+    const invoiceId = await Invoices.insertAsync({
+      total: 100,
+    });
+
+    const itemId = await InvoiceItems.insertAsync({
+      total: 50,
+      invoiceId,
+    });
+
+    await Invoices.updateAsync({_id: invoiceId}, {$set: {quantity: 2}});
+
+    return 'success';
+  });
+
+  return result;
+}
+
+async function rollback() {
+  try {
+    return await Mongo.withTransaction(async() => {
+      const invoiceId = await Invoices.insertAsync({
+        total: 100,
+      });
+
+      const itemId = await InvoiceItems.insertAsync({
+        total: 50,
+        invoiceId,
+      });
+
+      await Invoices.updateAsync({_id: invoiceId}, {$set: {quantity: 2}});
+
+      if (Meteor.isServer) {
+        await wait(1000);
+        throw new Meteor.Error('fail')
+      }
+
+      return invoiceId;
+    });
+  } catch (error) {
+    console.error(error)
+  }
+}
+
 async function insertInvoices({ fail = false } = {}) {
   try {
     return await Mongo.withTransaction(async() => {
@@ -31,7 +76,7 @@ async function insertInvoices({ fail = false } = {}) {
       return 'success';
     });
   } catch(error) {
-    console.log(error.message)
+    console.error(error.message)
   }
 }
 
@@ -69,25 +114,14 @@ async function insertInvoiceNoTransaction(data) {
   return Invoices.insertAsync(data);
 }
 
+Meteor.methods({ insertInvoicesAndUpdate, rollback })
+
 if (Meteor.isServer) {
   Meteor.methods({ reset, insertInvoices, updateInvoice, fetchInvoicesAndItems, insertInvoiceNoTransaction })
 }
 
 Tinytest.addAsync('isomorphic - success', async (test) => {
-  const result = await Mongo.withTransaction(async() => {
-    const invoiceId = await Invoices.insertAsync({
-      total: 100,
-    });
-
-    const itemId = await InvoiceItems.insertAsync({
-      total: 50,
-      invoiceId,
-    });
-
-    await Invoices.updateAsync({_id: invoiceId}, {$set: {quantity: 2}});
-
-    return 'success';
-  });
+  const result = await callPromise('insertInvoicesAndUpdate'); // await Meteor.applyAsync('insertInvoicesAndUpdate', [], { returnStubValue: true, throwStubErrors: true});
 
   if (Meteor.isClient) {
     test.equal(result, 'success')
@@ -104,33 +138,14 @@ Tinytest.addAsync('isomorphic - success', async (test) => {
     test.equal(items.length, 1);
   }
 
-  await Meteor.callAsync('reset')
+  await callPromise('reset')
 });
 
 Tinytest.addAsync('isomorphic - rollsback on error', async (test) => {
-  let invoiceId;
   let result;
 
   try {
-    result = await Mongo.withTransaction(async() => {
-      invoiceId = await Invoices.insertAsync({
-        total: 100,
-      });
-
-      const itemId = await InvoiceItems.insertAsync({
-        total: 50,
-        invoiceId,
-      });
-
-      await Invoices.updateAsync({_id: invoiceId}, {$set: {quantity: 2}});
-
-      if (Meteor.isServer) {
-        await wait(1000);
-        throw new Error('fail')
-      }
-
-      return invoiceId;
-    });
+    result = await Meteor.applyAsync('rollback', [], {returnStubValue: true});
   } catch(error) {
     if (Meteor.isClient) {
       test.equal(error.message, undefined)
@@ -141,13 +156,12 @@ Tinytest.addAsync('isomorphic - rollsback on error', async (test) => {
     }
   }
 
-
   if (Meteor.isClient) {
     test.equal(typeof result, 'string')
-    test.equal(result, invoiceId)
 
     const invoices = await Invoices.find().fetchAsync();
     test.equal(invoices.length, 1);
+    test.equal(result, invoices[0]._id)
 
     const items = await InvoiceItems.find().fetchAsync();
     test.equal(items.length, 1);
@@ -163,7 +177,7 @@ Tinytest.addAsync('isomorphic - rollsback on error', async (test) => {
     test.equal(items.length, 0);
   }
 
-  await Meteor.callAsync('reset')
+  await callPromise('reset')
 });
 
 if (Meteor.isServer) {
@@ -1034,30 +1048,13 @@ function createConnection() {
   return DDP.connect(Meteor.connection._stream.rawUrl, Meteor.connection.options);
 }
 
-function callPromise(methodName, ...args) { // using this instead of Meteor.callAsync because .callAsync was still in development
-  return new Promise((resolve, reject) => {
-    Meteor.call(methodName, ...args, (err, res) => {
-      if (err) {
-        reject(err);
-      }
-      else {
-        resolve(res);
-      }
-    });
-  });
+
+function callPromise(methodName, ...args) {
+  return Meteor.callAsync(methodName, ...args);
 }
 
 function callWithConnectionPromise(connection, methodName, ...args) {
-  return new Promise((resolve, reject) => {
-    connection.call(methodName, ...args, (err, res) => { // using this instead of .callAsync because I couldn't get .callAsync to work with connection
-      if (err) {
-        reject(err);
-      }
-      else {
-        resolve(res);
-      }
-    });
-  });
+  return connection.callAsync(methodName, ...args);
 }
 
 Tinytest.addAsync('multiple inserts from different clients - all succeed', async (test) => {
@@ -1092,13 +1089,8 @@ Tinytest.addAsync('multiple inserts from different clients - handles when some f
 
     const { invoices, items } = await callPromise('fetchInvoicesAndItems');
 
-    if (Meteor.isFibersDisabled) { // TODO: not sure how to get this to match the same result in 2.X. in 3.0, when we wrap with the methodInvocation, it seems like they no longer run concurrently
-      test.equal(invoices.length, 20);
-      test.equal(items.length, 20);
-    } else {
-      test.equal(invoices.length, 10);
-      test.equal(items.length, 10);
-    }
+    test.equal(invoices.length, 10);
+    test.equal(items.length, 10);
 
     await callPromise('reset');
   }
@@ -1160,11 +1152,7 @@ Tinytest.addAsync('concurrency - works by default', async (test) => {
 
     const [ invoice ] = invoices;
 
-    if (Meteor.isFibersDisabled) { // TODO: not sure how to get this to match the same result in 2.X. in 3.0, when we wrap with the methodInvocation, it seems like they no longer run concurrently. that might be a nice feature though.
-      test.equal(invoice.total, 100);
-    } else {
-      test.equal(invoice.total, 150);
-    }
+    test.equal(invoice.total, 150);
 
     await callPromise('reset');
   }
@@ -1185,7 +1173,6 @@ Tinytest.addAsync('concurrency - exact the same time', async (test) => {
   }
 });
 
-// TODO: in 3.0 when running inside a MethodInvocation, I wasn't able to get this to fail. in 3.0, when we wrap with the methodInvocation, it seems like they no longer run concurrently. that might be a nice feature though.
 Tinytest.addAsync('concurrency - fails and gives WriteError when using Core API ({ autoRetry: false })', async (test) => {
   if (Meteor.isClient) {
     try {
@@ -1193,11 +1180,10 @@ Tinytest.addAsync('concurrency - fails and gives WriteError when using Core API 
       const [ res1, res2 ] = await runConcurrentTransactions(invoiceId, { autoRetry: false, timeoutBefore: 200, timeoutAfter: 200 });
 
       const { invoices } = await callPromise('fetchInvoicesAndItems', {});
-      if (!Meteor.isFibersDisabled) {
-        test.equal('should not be reached', true);
-      }
+      test.equal('should not be reached', true);
+
     } catch(error) {
-      test.isTrue(error.message.includes('WriteConflict error'));
+      test.isTrue(error.message.includes('WriteConflict error') || error.message.includes('Write conflict')); // Mongo has adjusted the error message in newer version. This handles both 2.x and 3.x Meteor error messages from Mongo.
     } finally {
       await callPromise('reset');
     }

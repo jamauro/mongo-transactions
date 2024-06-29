@@ -15,7 +15,9 @@
 ## Usage
 
 ### Add the package to your app
-`meteor add jam:mongo-transactions`
+`meteor add jam:mongo-transactions@1.1.0-rc.4`
+
+`Note`: The specific version number `@1.1.0-rc.4` must be specified as above at this time. It's there for Meteor 3.0 compatibility reasons since 3.0 is in a pre-release state. Once Meteor 3.0 is officially released, the specific version will not be required.
 
 ### Create a Transaction
 
@@ -67,11 +69,7 @@ Mongo.inTransaction(); // returns true or false
 ### Using Isomorphically for Optimistic UI
 You can write `Mongo.withTransaction` and `Mongo.inTransaction` isomorphically for Optimistic UI however note that the Transaction will only truly be performed on the server.
 
-**Important**: If you're using `insertAsync` within your Transaction, be sure to call the Meteor Method with `Meteor.applyAsync(methodName, [args], {returnStubValue: true})` to ensure that the ID generated on the client will be the same as the one generated on the server. Otherwise, you'll run into issues. If you're using [jam:method](https://github.com/jamauro/method) to invoke your Meteor Methods, this is taken care of for you.
-
 As with any isomorphic code, you should be aware that it may fail because the operation can't succeed on the client but will succeed on the server. For example, let's say you're using `.find` within the Transaction and Minimongo on the client doesn't have that particular data, the client will fail but the server should still succeed. You can wrap specific server-only code with `if (Meteor.isServer)`, but in these cases, you'll likely want to avoid isomorphic code and make sure the entire Transaction code only runs on the server.
-
-**Note**: Isomorphism currently has issues in `Meteor 3.0-beta.0`. Since Meteor 3.0 is still in beta, I'm waiting to see if this functionality can be preserved.
 
 ## Using Mongo Atlas as your DB?
 **Important**: In my experience, you must use a paid tier for Transactions to work as expected with Meteor. The free tier would not tail the oplog for Transactions. So if you're trying this out in production, be sure to use a paid tier.

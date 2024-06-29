@@ -12,7 +12,7 @@ const isUpdateOrReplace = (methodName, args) => args.length === 2 && (replaceMet
 
 function wrapWithSession(methodName, args) {
   const session = currentSession.get();
-  if (!session) {
+  if (!session || session?.hasEnded) {
     return args;
   }
 
@@ -84,13 +84,12 @@ export const inTransaction = () => {
  */
 export const withTransaction = async(fn, { autoRetry = true, ...txnOptions } = {}) => {
   const session = client.startSession();
-  const methodInvocation = DDP._CurrentMethodInvocation.get();
 
   return await currentSession.withValue(session, async function () {
     try {
       let result;
       const txnFn = async () => {
-        result = methodInvocation ? await DDP._CurrentMethodInvocation.withValue(methodInvocation, fn) : await fn(); // in 3.0 the methodInvocation was being lost, so this preserves it if it's available
+        result = await fn();
       };
 
       if (autoRetry) {
@@ -109,6 +108,7 @@ export const withTransaction = async(fn, { autoRetry = true, ...txnOptions } = {
       return result;
     } finally {
       await session.endSession();
+      currentSession._set(undefined);
     }
   });
 };
