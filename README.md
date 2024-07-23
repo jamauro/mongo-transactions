@@ -15,9 +15,7 @@
 ## Usage
 
 ### Add the package to your app
-`meteor add jam:mongo-transactions@1.1.0-rc.4`
-
-`Note`: The specific version number `@1.1.0-rc.4` must be specified as above at this time. It's there for Meteor 3.0 compatibility reasons since 3.0 is in a pre-release state. Once Meteor 3.0 is officially released, the specific version will not be required.
+`meteor add jam:mongo-transactions`
 
 ### Create a Transaction
 
