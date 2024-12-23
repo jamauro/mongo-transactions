@@ -1,3 +1,6 @@
+## 1.2.0
+* feat: set `readPreference` to `primary` explicitly by default
+
 ## 1.1.0
 * fix: bump `versionsFrom` to official Meteor 3.0 release
 

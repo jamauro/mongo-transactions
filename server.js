@@ -82,7 +82,8 @@ export const inTransaction = () => {
  * @returns {Promise<T>} - A promise resolving to the result of the provided function.
  * @throws {Error} - Throws an error if the Transaction encounters an issue and cannot be committed.
  */
-export const withTransaction = async(fn, { autoRetry = true, ...txnOptions } = {}) => {
+export const withTransaction = async(fn, { autoRetry = true, ...options } = {}) => {
+  const txnOptions = { readPreference: 'primary', ...options };
   const session = client.startSession();
 
   return await currentSession.withValue(session, async function () {
