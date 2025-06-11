@@ -71,3 +71,7 @@ As with any isomorphic code, you should be aware that it may fail because the op
 
 ## Using Mongo Atlas as your DB?
 **Important**: In my experience, you must use a paid tier for Transactions to work as expected with Meteor. The free tier would not tail the oplog for Transactions. So if you're trying this out in production, be sure to use a paid tier.
+
+## Support
+
+If you find this package valuable, I hope you'll consider [supporting](https://github.com/sponsors/jamauro) it. :) Maybe you pass on the cost to your client(s) or factor in the time it saved you and your team.
