@@ -8,4 +8,7 @@ npm i
 meteor test --once --driver-package meteortesting:mocha --exclude-archs web.browser.legacy
 ```
 
-Next ensure to Typescript errors
+Next ensure no Typescript errors
+```
+npx tsc --noemit
+```
