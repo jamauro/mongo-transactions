@@ -1,4 +1,11 @@
-export namespace Mongo {
+// Turn into a module
+export {}
+
+declare module "meteor/mongo" {
+  /**
+   * Augment the Mongo namespace
+   */
+  namespace Mongo {
     /**
      * Executes a function within a MongoDB Transaction, providing error handling and optional retry functionality.
      *
@@ -26,3 +33,4 @@ export namespace Mongo {
      */
     export const inTransaction: () => boolean;
   }
+}

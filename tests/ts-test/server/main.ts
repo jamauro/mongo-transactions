@@ -1,5 +1,6 @@
 import { Meteor } from 'meteor/meteor';
 import { Link, LinksCollection } from '/imports/api/links';
+import { Mongo } from 'meteor/mongo';
 
 async function insertLink({ title, url }: Pick<Link, 'title' | 'url'>) {
   await LinksCollection.insertAsync({ title, url, createdAt: new Date() });
@@ -35,3 +36,8 @@ Meteor.startup(async () => {
     return LinksCollection.find();
   });
 });
+
+// Test enhancements provided by the package
+if (Mongo.inTransaction()) {
+
+}
