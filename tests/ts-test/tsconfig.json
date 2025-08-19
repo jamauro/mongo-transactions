@@ -26,11 +26,11 @@
     "paths": {
       /* Support absolute /imports/* with a leading '/' */
       "/*": ["*"],
-      /* Pull in type declarations for Meteor packages from either zodern:types or @types/meteor packages */
-      "meteor/*": [
-        "node_modules/@types/meteor/*",
-        ".meteor/local/types/packages.d.ts"
-      ]
+      /* Workaround for https://github.com/zodern/meteor-types/issues/10 */
+      "meteor/react-meteor-data": [
+        "./node_modules/@types/meteor/react-meteor-data.d.ts"
+      ],
+      "meteor/*": ["./.meteor/local/types/packages.d.ts"]
     },
     "moduleResolution": "node",
     "resolveJsonModule": true,
