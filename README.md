@@ -69,6 +69,22 @@ You can write `Mongo.withTransaction` and `Mongo.inTransaction` isomorphically f
 
 As with any isomorphic code, you should be aware that it may fail because the operation can't succeed on the client but will succeed on the server. For example, let's say you're using `.find` within the Transaction and Minimongo on the client doesn't have that particular data, the client will fail but the server should still succeed. You can wrap specific server-only code with `if (Meteor.isServer)`, but in these cases, you'll likely want to avoid isomorphic code and make sure the entire Transaction code only runs on the server.
 
+## Troubleshooting
+
+### Typescript
+If you're not seeing intellisense and type definitions for the functions provided by this package, e.g. `Mongo.withTransaction`, you may need to change your `tsconfig.json` to make sure it isn't excluding the local types:
+
+```js
+{
+  //... rest of your tsconfig
+  "exclude": [
+    "./.meteor/**",
+    "./packages/**",
+    "!./.meteor/local/types" // add this
+  ]
+}
+```
+
 ## Using Mongo Atlas as your DB?
 **Important**: In my experience, you must use a paid tier for Transactions to work as expected with Meteor. The free tier would not tail the oplog for Transactions. So if you're trying this out in production, be sure to use a paid tier.
 

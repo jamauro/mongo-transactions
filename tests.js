@@ -790,7 +790,7 @@ if (Meteor.isServer) {
       return result;
     });
 
-    test.equal(result.value.total, 50);
+    test.equal(result.total, 50);
   });
 
   Tinytest.addAsync('rawCollection() - findOneAndReplace', async (test) => {
@@ -815,7 +815,7 @@ if (Meteor.isServer) {
       return result;
     });
 
-    test.equal(result.value.total, 10);
+    test.equal(result.total, 10);
   });
 
   Tinytest.addAsync('rawCollection() - findOneAndDelete', async (test) => {
@@ -1189,6 +1189,3 @@ Tinytest.addAsync('concurrency - fails and gives WriteError when using Core API 
     }
   }
 });
-
-
-

@@ -1,3 +1,6 @@
+## 1.2.1
+* fix: improve typescript definitions and include Mongo's `TransactionOptions` type
+
 ## 1.2.0
 * feat: set `readPreference` to `primary` explicitly by default
 

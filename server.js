@@ -1,6 +1,5 @@
 import { Meteor } from 'meteor/meteor';
 import { Mongo, MongoInternals } from 'meteor/mongo';
-import { DDP } from 'meteor/ddp-client';
 
 const currentSession = new Meteor.EnvironmentVariable();
 const { client } = MongoInternals.defaultRemoteCollectionDriver().mongo;
@@ -78,7 +77,7 @@ export const inTransaction = () => {
  * @template T
  * @param {() => Promise<T>} fn - The function to be executed within the Transaction.
  * @param {boolean} [options.autoRetry=true] - If true, uses the Mongo Transactions Callback API for automatic retry on certain errors (refer to Mongo Docs); otherwise, uses the Core API.
- * @param {...any} [options] - Options specific to MongoDB Transactions (writeConcern, readConcern, etc). See the Mongo Docs for more details.
+ * @param {TransactionOptions} [options] - Options specific to MongoDB Transactions (writeConcern, readConcern, etc). See the Mongo Docs for more details.
  * @returns {Promise<T>} - A promise resolving to the result of the provided function.
  * @throws {Error} - Throws an error if the Transaction encounters an issue and cannot be committed.
  */
@@ -116,4 +115,3 @@ export const withTransaction = async(fn, { autoRetry = true, ...options } = {}) 
 
 Mongo.withTransaction = withTransaction;
 Mongo.inTransaction = inTransaction;
-
