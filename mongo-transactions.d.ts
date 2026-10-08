@@ -25,5 +25,15 @@ declare module 'meteor/mongo' {
      * @returns {boolean} Returns `true` if the current session is in a Transaction, `false` otherwise.
      */
     function inTransaction(): boolean;
+
+    /**
+     * Runs a function outside the current Transaction, e.g. for reads that set their own readConcern.
+     * Other Meteor environment variables, such as the method invocation, are kept.
+     *
+     * @template T
+     * @param {() => T} fn - The function to run without the Transaction's session.
+     * @returns {T} - The return value of the function.
+     */
+    function withoutTransaction<T>(fn: () => T): T;
   }
 }

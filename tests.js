@@ -4,8 +4,15 @@ import { DDP } from 'meteor/ddp-client';
 
 const Invoices = new Mongo.Collection('invoices');
 const InvoiceItems = new Mongo.Collection('invoice_items');
+const Receipts = new Mongo.Collection('receipts');
+const ReceiptLines = new Mongo.Collection('receipt_lines');
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function resetReceipts() {
+  await Receipts.removeAsync({});
+  await ReceiptLines.removeAsync({});
+}
 
 async function reset() {
   await Invoices.removeAsync({});
@@ -970,6 +977,70 @@ if (Meteor.isServer) {
       test.equal(Mongo.inTransaction(), true)
     })
     test.equal(Mongo.inTransaction(), false)
+  });
+
+  Tinytest.addAsync('withoutTransaction - inTransaction is false inside and true again after', async (test) => {
+    await Mongo.withTransaction(async() => {
+      await Mongo.withoutTransaction(async() => {
+        test.equal(Mongo.inTransaction(), false)
+      })
+      test.equal(Mongo.inTransaction(), true)
+    })
+  });
+
+  Tinytest.addAsync('withoutTransaction - returns the result of the function', async (test) => {
+    const result = await Mongo.withTransaction(async() => {
+      return await Mongo.withoutTransaction(async() => 'outside')
+    })
+    test.equal(result, 'outside')
+  });
+
+  Tinytest.addAsync('withoutTransaction - a read with its own readConcern succeeds after the transaction started', async (test) => {
+    await resetReceipts();
+    const receiptId = 'majority-receipt';
+    await Receipts.rawCollection().insertOne({ _id: receiptId, total: 100 }, { writeConcern: { w: 'majority' } });
+
+    const found = await Mongo.withTransaction(async() => {
+      await ReceiptLines.insertAsync({ total: 50, receiptId });
+      return await Mongo.withoutTransaction(() =>
+        Receipts.rawCollection().findOne({ _id: receiptId }, { readConcern: { level: 'majority' } })
+      )
+    })
+
+    test.equal(found, { _id: receiptId, total: 100 })
+  });
+
+  Tinytest.addAsync('withoutTransaction - writes are kept when the transaction fails', async (test) => {
+    await resetReceipts();
+
+    try {
+      await Mongo.withTransaction(async() => {
+        await Receipts.insertAsync({ total: 100 });
+        await Mongo.withoutTransaction(() => ReceiptLines.insertAsync({ total: 50 }));
+        throw new Error('fail')
+      });
+      test.equal('should not be reached', true);
+    } catch(error) {
+      test.equal(error.message, 'fail')
+    }
+
+    const receipts = await Receipts.find().fetchAsync();
+    test.equal(receipts.length, 0);
+
+    const lines = await ReceiptLines.find().fetchAsync();
+    test.equal(lines.length, 1);
+  });
+
+  Tinytest.addAsync('withoutTransaction - keeps other environment variables', async (test) => {
+    const other = new Meteor.EnvironmentVariable();
+
+    await other.withValue('kept', () =>
+      Mongo.withTransaction(async() => {
+        await Mongo.withoutTransaction(async() => {
+          test.equal(other.get(), 'kept')
+        })
+      })
+    )
   });
 
   Tinytest.addAsync('Core API - works successfully', async (test) => {

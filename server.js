@@ -70,6 +70,17 @@ export const inTransaction = () => {
 };
 
 /**
+ * Runs a function outside the current Transaction, e.g. for reads that set their own readConcern.
+ * Other Meteor environment variables, such as the method invocation, are kept.
+ *
+ * @function
+ * @template T
+ * @param {() => T} fn - The function to run without the Transaction's session.
+ * @returns {T} - The return value of the function.
+ */
+export const withoutTransaction = fn => currentSession.withValue(undefined, fn);
+
+/**
  * Executes a function within a MongoDB Transaction, providing error handling and optional retry functionality.
  *
  * @async
@@ -115,3 +126,4 @@ export const withTransaction = async(fn, { autoRetry = true, ...options } = {}) 
 
 Mongo.withTransaction = withTransaction;
 Mongo.inTransaction = inTransaction;
+Mongo.withoutTransaction = withoutTransaction;

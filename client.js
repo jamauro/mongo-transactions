@@ -4,6 +4,7 @@ let _withTxn = false;
 
 // here to support isomorphic code but transactions only truly run on the server
 export const inTransaction = () => false;
+export const withoutTransaction = fn => fn();
 export const withTransaction = async fn => {
   _withTxn = true;
   return await fn();
@@ -25,5 +26,6 @@ if (!Meteor.isFibersDisabled) {
 
 Mongo.inTransaction = inTransaction;
 Mongo.withTransaction = withTransaction;
+Mongo.withoutTransaction = withoutTransaction;
 
 

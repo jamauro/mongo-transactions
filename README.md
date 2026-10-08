@@ -64,8 +64,19 @@ To determine if the code is currently running in a Transaction, use:
 Mongo.inTransaction(); // returns true or false
 ```
 
+### Running code outside of a Transaction
+Inside `Mongo.withTransaction`, every database operation joins the Transaction, including those made by libraries such as the MongoDB driver's `ClientEncryption`. To run something outside of it, use:
+```js
+await Mongo.withTransaction(async () => {
+  const key = await Mongo.withoutTransaction(() => clientEncryption.getKeyByAltName('my-key'));
+  // ... operations here are still in the Transaction
+});
+```
+
+Operations inside `Mongo.withoutTransaction` are not rolled back if the Transaction fails. This is useful for reads that set their own `readConcern`, which MongoDB rejects inside a Transaction once it has started (`Only the first command in a transaction may specify a readConcern`).
+
 ### Using Isomorphically for Optimistic UI
-You can write `Mongo.withTransaction` and `Mongo.inTransaction` isomorphically for Optimistic UI however note that the Transaction will only truly be performed on the server.
+You can write `Mongo.withTransaction`, `Mongo.inTransaction` and `Mongo.withoutTransaction` isomorphically for Optimistic UI however note that the Transaction will only truly be performed on the server.
 
 As with any isomorphic code, you should be aware that it may fail because the operation can't succeed on the client but will succeed on the server. For example, let's say you're using `.find` within the Transaction and Minimongo on the client doesn't have that particular data, the client will fail but the server should still succeed. You can wrap specific server-only code with `if (Meteor.isServer)`, but in these cases, you'll likely want to avoid isomorphic code and make sure the entire Transaction code only runs on the server.
 

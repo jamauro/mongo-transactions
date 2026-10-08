@@ -1,3 +1,6 @@
+## Unreleased
+* feat: `Mongo.withoutTransaction` to run code outside the current Transaction
+
 ## 1.2.1
 * fix: improve typescript definitions and include Mongo's `TransactionOptions` type
 
